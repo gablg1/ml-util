@@ -6,9 +6,6 @@ class Plotter():
     def __init__(self, x_min=-1, x_max=1, nsamples=100):
         self.x_plot = np.linspace(x_min, x_max, nsamples)
 
-    def plotDatum(self, x, y):
-        plt.plot(x, y)
-
     def plotData(self, x, y):
         plt.scatter(x, y)
 

@@ -13,7 +13,6 @@ class Plotter():
         vf = np.vectorize(f)
         y_plot = vf(self.x_plot)
         assert(self.x_plot.shape == y_plot.shape)
-
         plt.plot(self.x_plot, y_plot, '-')
 
     def show(self):

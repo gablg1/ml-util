@@ -3,10 +3,13 @@ import numpy as np
 #### Numpy related helpers
 
 # Whether the given v is a one dimensional vector
-def isvector(v):
-    if np.isscalar(v):
-    	return False
+def isVector(v):
+    if isScalar(v):
+        return False
     return len(v.shape) == 1
+
+def isScalar(s):
+    return np.isscalar(s)
 
 def dim(m):
     return len(m.shape)
@@ -16,11 +19,22 @@ def canDot(a, b):
 
 def canMultiply(a, b):
     if dim(a) == 2 and dim(b) in [1, 2]:
-        return a.shape[1] == b.shape[0]
+        ret = a.shape[1] == b.shape[0]
     elif dim(a) == 1 and dim(b) in [1, 2]:
-        return a.shape[0] == b.shape[0]
+        ret = a.shape[0] == b.shape[0]
     else:
-    	raise Exception('Multiplication not supported')
+        ret = False
+
+    if not ret:
+        print "Shape mismatch", a.shape, b.shape
+    return ret
+
+def canSum(a, b):
+    if a.shape != b.shape:
+        print "Shape mismatch", a.shape, b.shape
+        return False
+    return True
+
 
 ### Data related helpers
 
@@ -43,16 +57,16 @@ def normalizeFeatures(X_train, X_test):
     return X_train_normalized, X_test_normalized
 
 
-
 # Calculates the RMSE between the two (1, N) matrices
 def rmse(predictions, targets):
-    assert(predictions.shape == targets.shape)
+    assert(canSum(predictions, targets))
     return np.sqrt(np.mean(np.square(predictions-targets)))
 
 
 def predictRMSE(f, x, y, kind=None):
     # Predictions of the train data
-    y_predictions = f(x)
+    vf = np.vectorize(f)
+    y_predictions = vf(x)
     data_rmse = rmse(y_predictions, y)
 
     if kind:
@@ -101,7 +115,7 @@ def testGradient(f, grad, D):
     calculated_gradient = grad(test)
     numeric_gradient = []
     for i in range(D):
-    	numeric_gradient.append(axisDerivative(f, test, i, D))
+        numeric_gradient.append(axisDerivative(f, test, i, D))
     numeric_gradient = np.array(numeric_gradient)
 
     print 'The numeric gradient is:'
@@ -117,7 +131,13 @@ def testGradient(f, grad, D):
 
 ## Linear regression
 
+# Solves linear regression using the numerically stable QR method
+# (N x D, D) -> (D)
 def QRRegression(X_train, y_train):
+    # If the number of data points is less than the dimension,
+    # the Linear regression solution is not well defined
+    assert(X_train.shape[0] >= X_train.shape[1])
+
     Q, R = np.linalg.qr(X_train)
     assert(R.shape[0] == R.shape[1])
     R_inv = np.linalg.inv(R)
@@ -138,3 +158,24 @@ def ridgeData(X_train, Y_train, D, ridge_var):
 def linRegTestAndTrainRMSE(beta, X_test, y_test, X_train, y_train):
     assert(isvector(beta))
     return testAndTrainRMSE(lambda x: x.dot(beta), X_test, y_test, X_train, y_train)
+
+
+## Priors and Posteriors and Likelihoods
+
+# Model assumes Y ~ N(Xw,Sigma)
+# and that w ~ N(w_0, V_0) is the prior
+#
+# (D, D X D, N X D, N, N X N) -> (D, D X D)
+# Returns the posterions w_n, V_n given the data X, Y
+def bayesLinRegPosterior(w_0, V_0, X, Y, Sigma):
+    Sigma_inv = np.linalg.inv(Sigma)
+    V_0_inv = np.linalg.inv(V_0)
+
+    # After this point we know all invertible matrices are square
+    assert(canMultiply(X.T, Sigma_inv))
+    V_n = np.linalg.inv(V_0_inv + X.T.dot(Sigma_inv).dot(X))
+
+    assert(canMultiply(X.T, Y))
+    assert(canMultiply(V_0_inv, w_0))
+    w_n = V_n.dot(V_0_inv.dot(w_0) + X.T.dot(Sigma_inv).dot(Y))
+    return w_n, V_n

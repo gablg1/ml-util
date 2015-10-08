@@ -105,13 +105,15 @@ def axisDerivative(f, x, i, D, epsilon=0.001):
     epsilon_matrix = np.zeros(D)
     epsilon_matrix[i] += epsilon
 
+    assert(epsilon_matrix.shape == (D,))
+    assert(isScalar(epsilon))
     ret = (f(x + epsilon_matrix) - f(x - epsilon_matrix)) / (2 * epsilon)
     assert(np.isscalar(ret))
     return ret
 
 # f is a mapping (D,) -> 1 and grad is a mapping (D,) -> (D,)
 def testGradient(f, grad, D):
-    test = np.random.rand(D)
+    test = np.zeros(D)
     assert(test.shape == (D,))
     calculated_gradient = grad(test)
     numeric_gradient = []
@@ -209,6 +211,10 @@ def bayesLinRegPosterior(w_0, V_0, X, Y, Sigma):
 
 def sigmoid(x):
     assert(isScalar(x))
-    ret = 1 / (1 + np.exp(-x))
+    # This is for numerical stability
+    if x > 0:
+        ret = 1 / (1 + math.exp(-x))
+    else:
+    	ret = math.exp(x)/(1 + math.exp(x))
     assert(0 <= ret and ret <= 1)
     return ret

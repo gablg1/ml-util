@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 #### Numpy related helpers
 
@@ -99,9 +100,8 @@ def applyNLGaussian(value, mean, var):
     return (1. / var) * term.dot(term.T)
 
 # Calculates the derivative of f on x along axis i
-def axisDerivative(f, x, i, D):
+def axisDerivative(f, x, i, D, epsilon=0.001):
     assert(x.shape == (D,))
-    epsilon = 0.1
     epsilon_matrix = np.zeros(D)
     epsilon_matrix[i] += epsilon
 
@@ -112,6 +112,7 @@ def axisDerivative(f, x, i, D):
 # f is a mapping (D,) -> 1 and grad is a mapping (D,) -> (D,)
 def testGradient(f, grad, D):
     test = np.random.rand(D)
+    assert(test.shape == (D,))
     calculated_gradient = grad(test)
     numeric_gradient = []
     for i in range(D):
@@ -204,8 +205,10 @@ def bayesLinRegPosterior(w_0, V_0, X, Y, Sigma):
     w_n = V_n.dot(V_0_inv.dot(w_0) + X.T.dot(Sigma_inv).dot(Y))
     return w_n, V_n
 
+## Logistic Regression
 
-
-
-
-
+def sigmoid(x):
+    assert(isScalar(x))
+    ret = 1 / (1 + np.exp(-x))
+    assert(0 <= ret and ret <= 1)
+    return ret

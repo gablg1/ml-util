@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 import math
 
 #### Numpy related helpers
@@ -64,14 +65,15 @@ def rmse(predictions, targets):
     return np.sqrt(np.mean(np.square(predictions-targets)))
 
 
-def predictRMSE(f, x, y, kind=None):
+def predictRMSE(f, x, y, label=None):
     # Predictions of the train data
-    vf = np.vectorize(f)
-    y_predictions = vf(x)
+    N = x.shape[0]
+    assert(y.shape[0] == N)
+    y_predictions = np.array([f(x[i]) for i in range(N)])
     data_rmse = rmse(y_predictions, y)
 
-    if kind:
-        print "RMSE on %s data: %s" % (kind, data_rmse)
+    if label:
+        print "RMSE on %s data: %s" % (label, data_rmse)
     else:
         print "RMSE on data: %s" % data_rmse
     print
@@ -168,8 +170,15 @@ def linRegTestAndTrainRMSE(beta, X_test, y_test, X_train, y_train):
 # x is the matrix of observations
 # index is which of the 0...k-1 folds one wants separated out
 # folds is the total number of partitions desired
+#
+# Returns x_train, y_train, x_test, y_test
+def kFolds(x, y, index, folds=10):
+    assert(x.shape[0] == y.shape[0])
+    x_train, x_test = kFoldsHelper(x, index, folds)
+    y_train, y_test = kFoldsHelper(y, index, folds)
+    return x_train, y_train, x_test, y_test
 
-def kfold(x, index, folds=10):
+def kFoldsHelper(x, index, folds):
     if (index > folds-1) or (index < 0):
         raise IndexError('Index out of range of permitted folds')
 
@@ -209,12 +218,15 @@ def bayesLinRegPosterior(w_0, V_0, X, Y, Sigma):
 
 ## Logistic Regression
 
+def logisticProb(X, w):
+    if canDot(X.T, w):
+        return sigmoid(X.T.dot(w))
+    elif canMultiply(X, w):
+        vsigmoid = np.vectorize(sigmoid)
+        mu = vsigmoid(X.dot(w))
+        N, _ = X.shape
+        assert(mu.shape == (N,))
+        return mu
+
 def sigmoid(x):
-    assert(isScalar(x))
-    # This is for numerical stability
-    if x > 0:
-        ret = 1 / (1 + math.exp(-x))
-    else:
-    	ret = math.exp(x)/(1 + math.exp(x))
-    assert(0 <= ret and ret <= 1)
-    return ret
+    return scipy.special.expit(x)

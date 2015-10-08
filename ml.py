@@ -160,6 +160,30 @@ def linRegTestAndTrainRMSE(beta, X_test, y_test, X_train, y_train):
     return testAndTrainRMSE(lambda x: x.dot(beta), X_test, y_test, X_train, y_train)
 
 
+## splits a matrix of observations into k different folds, and returns
+# another matrix of k-1 folds and 1 additional fold separated out
+# x is the matrix of observations
+# index is which of the 0...k-1 folds one wants separated out
+# folds is the total number of partitions desired
+
+def kfold(x, index, folds=10):
+    if (index > folds-1) or (index < 0):
+        raise IndexError('Index out of range of permitted folds')
+
+    if folds < 2:
+        raise ValueError('Insufficient number of folds')
+
+    observations = x.shape[0]
+
+    if observations < folds:
+        raise IndexError('Cannot have more folds than observations')
+
+    indices = [(observations/folds)*i for i in xrange(1,10)]
+    splits = np.array_split(x, indices)
+    test = splits.pop(index)
+
+    return np.concatenate(splits), test
+
 ## Priors and Posteriors and Likelihoods
 
 # Model assumes Y ~ N(Xw,Sigma)
@@ -179,3 +203,9 @@ def bayesLinRegPosterior(w_0, V_0, X, Y, Sigma):
     assert(canMultiply(V_0_inv, w_0))
     w_n = V_n.dot(V_0_inv.dot(w_0) + X.T.dot(Sigma_inv).dot(Y))
     return w_n, V_n
+
+
+
+
+
+

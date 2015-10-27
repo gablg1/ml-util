@@ -1,4 +1,4 @@
-import numpy as np
+import autograd.numpy as np
 import scipy
 import math
 
@@ -81,10 +81,10 @@ def predictRMSE(f, x, y, label=None):
 
 def testAndTrainRMSE(f, X_test, y_test, X_train, y_train):
     # Predictions of the train data
-    train_rmse = predictRMSE(f, X_train, y_train, kind='train')
+    train_rmse = predictRMSE(f, X_train, y_train, label='train')
 
     # Predictions of the test data
-    test_rmse = predictRMSE(f, X_test, y_test, kind='test')
+    test_rmse = predictRMSE(f, X_test, y_test, label='test')
     return test_rmse, train_rmse
 
 
@@ -136,6 +136,14 @@ def testGradient(f, grad, D):
 
 ## Linear regression
 
+def solveLinearRegression(X_train, y_train, ridge_var):
+    N, D = X_train.shape
+    assert(y_train.shape == (N,))
+    X_train_ridge, y_train_ridge = ridgeData(X_train, y_train)
+    assert(X_train_ridge.shape == (D + N, D))
+    assert(y_train_ridge.shape == (D + N,))
+    return QRRegression(X_train_ridge, y_train_ridge)
+
 # Solves linear regression using the numerically stable QR method
 # (N x D, D) -> (D)
 def QRRegression(X_train, y_train):
@@ -149,9 +157,10 @@ def QRRegression(X_train, y_train):
     assert(Q.shape[0] == y_train.shape[0])
     return R_inv.dot(Q.T).dot(y_train)
 
-# This wasn't tested for dim(X_train) != 2 or dim(Y_train) != 1
-def ridgeData(X_train, Y_train, D, ridge_var):
-    ridge_precision = 1. / ridge_var
+def ridgeData(X_train, Y_train, regularization_factor):
+    # This wasn't tested for dim(X_train) != 2 or dim(Y_train) != 1
+    N, D = X_train.shape
+    assert(Y_train.shape == (N,))
     ridge_matrix = np.sqrt(ridge_precision) * np.identity(D)
     X_trainp = np.concatenate((X_train, ridge_matrix), 0)
 
@@ -213,7 +222,7 @@ def bayesLinRegPosterior(w_0, V_0, X, Y, Sigma):
 
     assert(canMultiply(X.T, Y))
     assert(canMultiply(V_0_inv, w_0))
-    w_n = V_n.dot(V_0_inv.dot(w_0) + X.T.dot(Sigma_inv).dot(Y))
+    w_n = V_n.dot(V_0_invedot(w_0) + X.T.dot(Sigma_inv).dot(Y))
     return w_n, V_n
 
 ## Logistic Regression
@@ -222,8 +231,7 @@ def logisticProb(X, w):
     if canDot(X.T, w):
         return sigmoid(X.T.dot(w))
     elif canMultiply(X, w):
-        vsigmoid = np.vectorize(sigmoid)
-        mu = vsigmoid(X.dot(w))
+        mu = sigmoid(X.dot(w))
         N, _ = X.shape
         assert(mu.shape == (N,))
         return mu

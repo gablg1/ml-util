@@ -40,6 +40,10 @@ def canSum(a, b):
 
 ### Data related helpers
 
+def batches(data, batch_size=100):
+    n = data.shape[0]
+    return np.array_split(data, n / batch_size)
+
 # Splits the data between Train and Test
 def splitTrainTest(X, y, fraction_train = 9.0 / 10.0):
     end_train = round(X.shape[ 0 ] * fraction_train)
@@ -102,8 +106,8 @@ def applyNLGaussian(value, mean, var):
     return (1. / var) * term.dot(term.T)
 
 # Calculates the derivative of f on x along axis i
-def axisDerivative(f, x, i, D, epsilon=0.001):
-    assert(x.shape == (D,))
+def axisDerivative(f, x, i, epsilon=0.000001):
+    D = x.shape[0]
     epsilon_matrix = np.zeros(D)
     epsilon_matrix[i] += epsilon
 
@@ -113,9 +117,17 @@ def axisDerivative(f, x, i, D, epsilon=0.001):
     assert(np.isscalar(ret))
     return ret
 
+def numericGradient(f, elem):
+    assert(isVector(elem))
+    D = elem.shape[0]
+    numeric_gradient = np.array([axisDerivative(f, elem, i, D) for i in range(D)])
+    return numeric_gradient
+
+
 # f is a mapping (D,) -> 1 and grad is a mapping (D,) -> (D,)
+# Don't really trust this. Consider using the check_grad in autograd
 def testGradient(f, grad, D):
-    test = np.zeros(D)
+    test = np.ones(D)
     assert(test.shape == (D,))
     calculated_gradient = grad(test)
     numeric_gradient = []
